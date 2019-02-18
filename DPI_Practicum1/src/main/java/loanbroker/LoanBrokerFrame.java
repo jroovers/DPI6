@@ -4,6 +4,8 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -11,6 +13,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
 import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
@@ -21,6 +24,7 @@ import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
 import model.bank.*;
+import model.loan.LoanReply;
 import model.loan.LoanRequest;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
@@ -44,6 +48,8 @@ public class LoanBrokerFrame extends JFrame {
     private MessageProducer clientProducer; // for sending messages
     private MessageConsumer bankConsumer; // for receiving messages
     private MessageProducer bankProducer; // for sending messages
+
+    private LoanRequest temporaryLRequest;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -85,6 +91,20 @@ public class LoanBrokerFrame extends JFrame {
                 @Override
                 public void onMessage(Message message) {
                     System.out.println("Received message from client");
+                    if (message instanceof ObjectMessage) {
+                        try {
+                            ObjectMessage objectMessage = (ObjectMessage) message;
+                            LoanRequest lr = (LoanRequest) objectMessage.getObject();
+                            add(lr);
+                            temporaryLRequest = lr;
+                            BankInterestRequest bir = new BankInterestRequest(lr.getAmount(), lr.getTime());
+                            System.out.println("Sending bankinterest request: " + bir);
+                            add(lr, bir);
+                            bankProducer.send(session.createObjectMessage(bir));
+                        } catch (JMSException ex) {
+                            System.out.println("JMS exception in onMessage method for client consumer.");
+                        }
+                    }
                 }
             });
 
@@ -95,6 +115,16 @@ public class LoanBrokerFrame extends JFrame {
                 @Override
                 public void onMessage(Message message) {
                     System.out.println("Received message from bank");
+                    if (message instanceof ObjectMessage) {
+                        try {
+                            ObjectMessage objectMessage = (ObjectMessage) message;
+                            BankInterestReply bir = (BankInterestReply) objectMessage.getObject();
+                            add(temporaryLRequest, bir);
+                            temporaryLRequest = null;
+                        } catch (JMSException ex) {
+                            System.out.println("JMS exception in onMessage method for bank consumer.");
+                        }
+                    }
                 }
             });
 
@@ -165,5 +195,4 @@ public class LoanBrokerFrame extends JFrame {
             list.repaint();
         }
     }
-
 }
