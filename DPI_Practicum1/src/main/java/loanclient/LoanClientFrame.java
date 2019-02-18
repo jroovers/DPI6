@@ -15,6 +15,7 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
 import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
@@ -51,6 +52,8 @@ public class LoanClientFrame extends JFrame {
     private MessageConsumer consumer; // for receiving messages
     private MessageProducer producer; // for sending messages
 
+    private LoanRequest temporaryRequest;
+
     /**
      * Create the frame.
      */
@@ -74,7 +77,21 @@ public class LoanClientFrame extends JFrame {
             consumer.setMessageListener(new MessageListener() {
                 @Override
                 public void onMessage(Message message) {
-                    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    System.out.println("Client received message from broker");
+                    if (message instanceof ObjectMessage) {
+                        try {
+                            ObjectMessage o = (ObjectMessage) message;
+                            LoanReply lr = (LoanReply) o.getObject();
+                            RequestReply<LoanRequest, LoanReply> rr = getRequestReply(temporaryRequest);
+                            rr.setReply(lr);
+                            requestReplyList.repaint();
+                            System.out.println(rr);
+                            temporaryRequest = null;
+                        } catch (Exception ex) {
+                            System.out.println("General Exception in onMessage method for broker consumer.");
+                            ex.printStackTrace();
+                        }
+                    }
                 }
             });
 
@@ -167,7 +184,8 @@ public class LoanClientFrame extends JFrame {
                     // create a message  
                     Message msg = session.createObjectMessage(request);
                     // send the message
-                    System.out.println("Send message " + request.toString());
+                    System.out.println("Client send message to broker: " + request.toString());
+                    temporaryRequest = request;
                     producer.send(msg);
                 } catch (JMSException ex) {
                     Logger.getLogger(LoanClientFrame.class.getName()).log(Level.SEVERE, null, ex);
@@ -212,7 +230,6 @@ public class LoanClientFrame extends JFrame {
                 return rr;
             }
         }
-
         return null;
     }
 

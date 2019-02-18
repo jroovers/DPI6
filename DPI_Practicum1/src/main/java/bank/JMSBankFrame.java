@@ -6,8 +6,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -34,9 +32,6 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class JMSBankFrame extends JFrame {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = 1L;
     private JPanel contentPane;
     private JTextField tfReply;
@@ -87,13 +82,16 @@ public class JMSBankFrame extends JFrame {
             consumer.setMessageListener(new MessageListener() {
                 @Override
                 public void onMessage(Message message) {
-                    try {
-                        System.out.println("Received message from broker");
-                        ObjectMessage o = (ObjectMessage) message;
-                        BankInterestRequest bir = (BankInterestRequest) o.getObject();
-                        listModel.addElement(new RequestReply<>(bir, null));
-                    } catch (JMSException ex) {
-                        System.out.println("JMS exception in onMessage method for broker consumer.");
+                    System.out.println("Bank received message from broker");
+                    if (message instanceof ObjectMessage) {
+                        try {
+
+                            ObjectMessage o = (ObjectMessage) message;
+                            BankInterestRequest bir = (BankInterestRequest) o.getObject();
+                            listModel.addElement(new RequestReply<>(bir, null));
+                        } catch (JMSException ex) {
+                            System.out.println("JMS exception in onMessage method for broker consumer.");
+                        }
                     }
                 }
             });
@@ -102,7 +100,7 @@ public class JMSBankFrame extends JFrame {
             connection.start();
         } catch (JMSException ex) {
             // No point in continueing, kill the app.
-            System.out.println("JMS exception in LoanClientFrame in constructor method");
+            System.out.println("JMS exception in JMSBankFrame in constructor method");
             System.out.println("Is ActiveMQ server running?");
 
             System.out.println("Shutting down");
@@ -163,6 +161,7 @@ public class JMSBankFrame extends JFrame {
                     list.repaint();
                     try {
                         // todo: sent JMS message with the reply to Loan Broker
+                        System.out.println("Bank sending BankInterestReply to Broker: " + String.valueOf(interest));
                         producer.send(session.createObjectMessage(reply));
                     } catch (JMSException ex) {
                         System.out.println("JMSexception while sending reply.");

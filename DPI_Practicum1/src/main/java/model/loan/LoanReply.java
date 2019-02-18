@@ -1,20 +1,23 @@
 package model.loan;
 
+import java.io.Serializable;
+
 /**
  *
- * This class stores all information about a bank offer
- * as a response to a client loan request.
+ * This class stores all information about a bank offer as a response to a
+ * client loan request.
  */
-public class LoanReply {
+public class LoanReply implements Serializable {
 
-        private double interest; // the interest that the bank offers
-        private String bankID; // the unique quote identification
+    private double interest; // the interest that the bank offers
+    private String bankID; // the unique quote identification
 
     public LoanReply() {
         super();
         this.interest = 0;
         this.bankID = "";
     }
+
     public LoanReply(double interest, String quoteID) {
         super();
         this.interest = interest;
@@ -36,9 +39,9 @@ public class LoanReply {
     public void setQuoteID(String quoteID) {
         this.bankID = quoteID;
     }
-    
+
     @Override
-    public String toString(){
-        return " interest="+String.valueOf(interest) + " quoteID="+String.valueOf(bankID);
+    public String toString() {
+        return " interest=" + String.valueOf(interest) + " quoteID=" + String.valueOf(bankID);
     }
 }
