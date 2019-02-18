@@ -6,6 +6,17 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.jms.Connection;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -19,6 +30,7 @@ import javax.swing.border.EmptyBorder;
 
 import model.bank.*;
 import messaging.requestreply.RequestReply;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class JMSBankFrame extends JFrame {
 
@@ -29,6 +41,13 @@ public class JMSBankFrame extends JFrame {
     private JPanel contentPane;
     private JTextField tfReply;
     private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
+
+    private Connection connection; // to connect to the JMS
+    private Session session; // session for creating consumers
+    private Destination receiverDestination; // reference to a queue/topic destination
+    private Destination sendDestination; // reference to a queue/topic destination
+    private MessageConsumer consumer; // for receiving messages
+    private MessageProducer producer; // for sending messages
 
     /**
      * Launch the application.
@@ -50,6 +69,46 @@ public class JMSBankFrame extends JFrame {
      * Create the frame.
      */
     public JMSBankFrame() {
+
+        // load shared variables
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        connectionFactory.setTrustAllPackages(true);
+        try {
+            connection = connectionFactory.createConnection();
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+            // start sender
+            sendDestination = session.createQueue("BankSendDestination");
+            producer = session.createProducer(sendDestination);
+
+            // start receiver
+            receiverDestination = session.createQueue("BankReceiverDestination");
+            consumer = session.createConsumer(receiverDestination);
+            consumer.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(Message message) {
+                    try {
+                        System.out.println("Received message from broker");
+                        ObjectMessage o = (ObjectMessage) message;
+                        BankInterestRequest bir = (BankInterestRequest) o.getObject();
+                        listModel.addElement(new RequestReply<>(bir, null));
+                    } catch (JMSException ex) {
+                        System.out.println("JMS exception in onMessage method for broker consumer.");
+                    }
+                }
+            });
+
+            // Connect
+            connection.start();
+        } catch (JMSException ex) {
+            // No point in continueing, kill the app.
+            System.out.println("JMS exception in LoanClientFrame in constructor method");
+            System.out.println("Is ActiveMQ server running?");
+
+            System.out.println("Shutting down");
+            System.exit(1);
+        }
+
         setTitle("JMS Bank - ABN AMRO");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -102,7 +161,12 @@ public class JMSBankFrame extends JFrame {
                 if (rr != null && reply != null) {
                     rr.setReply(reply);
                     list.repaint();
-                    // todo: sent JMS message with the reply to Loan Broker
+                    try {
+                        // todo: sent JMS message with the reply to Loan Broker
+                        producer.send(session.createObjectMessage(reply));
+                    } catch (JMSException ex) {
+                        System.out.println("JMSexception while sending reply.");
+                    }
                 }
             }
         });
