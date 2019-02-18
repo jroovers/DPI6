@@ -4,6 +4,14 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import javax.jms.Connection;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
@@ -14,6 +22,7 @@ import javax.swing.border.EmptyBorder;
 
 import model.bank.*;
 import model.loan.LoanRequest;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class LoanBrokerFrame extends JFrame {
 
@@ -24,6 +33,17 @@ public class LoanBrokerFrame extends JFrame {
     private JPanel contentPane;
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
+
+    private Connection connection; // to connect to the JMS
+    private Session session; // session for creating consumers
+    private Destination clientReceiveDestination; // reference to a queue/topic destination
+    private Destination clientSendDestination; // reference to a queue/topic destination
+    private Destination bankReceiverDestination; // reference to a queue/topic destination
+    private Destination bankSendDestination; // reference to a queue/topic destination
+    private MessageConsumer clientConsumer; // for receiving messages
+    private MessageProducer clientProducer; // for sending messages
+    private MessageConsumer bankConsumer; // for receiving messages
+    private MessageProducer bankProducer; // for sending messages
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -42,6 +62,53 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
+
+        // load shared variables
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        connectionFactory.setTrustAllPackages(true);
+        try {
+            connection = connectionFactory.createConnection();
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+            // start sender (client)
+            clientReceiveDestination = session.createQueue("ClientReceiverDestination");
+            clientProducer = session.createProducer(clientReceiveDestination);
+
+            // start sender (bank)
+            bankReceiverDestination = session.createQueue("BankReceiverDestination");
+            bankProducer = session.createProducer(bankReceiverDestination);
+
+            // start receiver (client)
+            clientSendDestination = session.createQueue("ClientSendDestination");
+            clientConsumer = session.createConsumer(clientSendDestination);
+            clientConsumer.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(Message message) {
+                    System.out.println("Received message from client");
+                }
+            });
+
+            // start receiver (bank)
+            bankSendDestination = session.createQueue("BankSendDestination");
+            bankConsumer = session.createConsumer(bankSendDestination);
+            bankConsumer.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(Message message) {
+                    System.out.println("Received message from bank");
+                }
+            });
+
+            // Connect
+            connection.start();
+        } catch (JMSException ex) {
+            // No point in continueing, kill the app.
+            System.out.println("JMS exception in LoanClientFrame in constructor method");
+            System.out.println("Is ActiveMQ server running?");
+
+            System.out.println("Shutting down");
+            System.exit(1);
+        }
+
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -76,7 +143,6 @@ public class LoanBrokerFrame extends JFrame {
                 return rr;
             }
         }
-
         return null;
     }
 
