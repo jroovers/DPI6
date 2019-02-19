@@ -1,4 +1,4 @@
-package gateway.utility;
+package messaging.utility;
 
 import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;

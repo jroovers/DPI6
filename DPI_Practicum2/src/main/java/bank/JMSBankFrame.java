@@ -1,6 +1,5 @@
 package bank;
 
-import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -27,26 +26,18 @@ public class JMSBankFrame extends JFrame {
     private JTextField tfReply;
     private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
 
-    /**
-     * Launch the application.
-     */
-    public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    JMSBankFrame frame = new JMSBankFrame();
-                    frame.setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
+    private LoanBrokerAppGateway brokerGateway;
 
     /**
      * Create the frame.
      */
     public JMSBankFrame() {
+        brokerGateway = new LoanBrokerAppGateway() {
+            @Override
+            public void onBankRequestArrived(BankInterestRequest request) {
+                listModel.addElement(new RequestReply<>(request, null));
+            }
+        };
         setTitle("JMS Bank - ABN AMRO");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -101,6 +92,7 @@ public class JMSBankFrame extends JFrame {
                     list.repaint();
                     // todo: sent JMS message with the reply to Loan Broker
                     System.out.println("Bank sending BankInterestReply to Broker: " + String.valueOf(interest));
+                    brokerGateway.sendBankReply(rr.getRequest(), rr.getReply());
                 }
             }
         });

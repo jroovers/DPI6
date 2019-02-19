@@ -1,7 +1,5 @@
 package model.bank;
 
-import java.io.Serializable;
-
 /**
  *
  * This class stores all information about an request from a bank to offer a

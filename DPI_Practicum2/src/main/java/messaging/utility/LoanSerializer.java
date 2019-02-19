@@ -1,4 +1,4 @@
-package gateway.utility;
+package messaging.utility;
 
 import model.loan.LoanReply;
 import model.loan.LoanRequest;

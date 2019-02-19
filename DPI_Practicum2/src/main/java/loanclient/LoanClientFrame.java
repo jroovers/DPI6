@@ -1,6 +1,5 @@
 package loanclient;
 
-import gateway.app.LoanBrokerAppGateway;
 import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -124,6 +123,7 @@ public class LoanClientFrame extends JFrame {
                 LoanRequest request = new LoanRequest(ssn, amount, time);
                 listModel.addElement(new RequestReply<>(request, null));
                 // to do:  send the JMS with request to Loan Broker
+                System.out.println("Client sending LoanRequest to broker: " + request.toString());
                 brokerGateway.applyForLoan(request);
 
             }

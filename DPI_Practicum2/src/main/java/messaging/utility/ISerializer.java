@@ -1,4 +1,4 @@
-package gateway.utility;
+package messaging.utility;
 
 import com.owlike.genson.Genson;
 

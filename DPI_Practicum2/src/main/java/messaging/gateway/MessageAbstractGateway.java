@@ -1,4 +1,4 @@
-package gateway.jms;
+package messaging.gateway;
 
 import javax.jms.Connection;
 import javax.jms.Destination;

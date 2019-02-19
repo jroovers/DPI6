@@ -187,6 +187,8 @@ public class LoanClientFrame extends JFrame {
                     System.out.println("Client send message to broker: " + request.toString());
                     temporaryRequest = request;
                     producer.send(msg);
+                    System.out.println("Msgid: " + msg.getJMSMessageID());
+                    System.out.println("Corr: " + msg.getJMSCorrelationID());
                 } catch (JMSException ex) {
                     Logger.getLogger(LoanClientFrame.class.getName()).log(Level.SEVERE, null, ex);
                 }

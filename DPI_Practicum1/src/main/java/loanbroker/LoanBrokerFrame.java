@@ -88,6 +88,8 @@ public class LoanBrokerFrame extends JFrame {
                     System.out.println("Broker received message from client");
                     if (message instanceof ObjectMessage) {
                         try {
+                            System.out.println("Msgid: " + message.getJMSMessageID());
+                            System.out.println("Corr: " + message.getJMSCorrelationID());
                             ObjectMessage objectMessage = (ObjectMessage) message;
                             LoanRequest lr = (LoanRequest) objectMessage.getObject();
                             add(lr);
@@ -95,7 +97,10 @@ public class LoanBrokerFrame extends JFrame {
                             BankInterestRequest bir = new BankInterestRequest(lr.getAmount(), lr.getTime());
                             System.out.println("Broker sending BankInterestRequest to bank: " + bir);
                             add(lr, bir);
-                            bankProducer.send(session.createObjectMessage(bir));
+                            Message msg = session.createObjectMessage(bir);
+                            bankProducer.send(msg);
+                            System.out.println("Msgid: " + msg.getJMSMessageID());
+                            System.out.println("Corr: " + msg.getJMSCorrelationID());
                         } catch (JMSException ex) {
                             System.out.println("JMS exception in onMessage method for client consumer.");
                         }

@@ -85,7 +85,8 @@ public class JMSBankFrame extends JFrame {
                     System.out.println("Bank received message from broker");
                     if (message instanceof ObjectMessage) {
                         try {
-
+                            System.out.println("Msgid: " + message.getJMSMessageID());
+                            System.out.println("Corr: " + message.getJMSCorrelationID());
                             ObjectMessage o = (ObjectMessage) message;
                             BankInterestRequest bir = (BankInterestRequest) o.getObject();
                             listModel.addElement(new RequestReply<>(bir, null));

@@ -4,15 +4,6 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import javax.jms.Connection;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
-import javax.jms.ObjectMessage;
-import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
@@ -24,7 +15,6 @@ import javax.swing.border.EmptyBorder;
 import model.bank.*;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
-import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class LoanBrokerFrame extends JFrame {
 
@@ -32,6 +22,9 @@ public class LoanBrokerFrame extends JFrame {
     private JPanel contentPane;
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
+
+    private BankAppGateway bankGateway;
+    private LoanClientGateway clientGateway;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -50,6 +43,26 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
+
+        bankGateway = new BankAppGateway() {
+            @Override
+            public void onBankReplyArrived(BankInterestRequest request, BankInterestReply reply) {
+                add(request, reply);
+                System.out.println("Broker sending LoanReply to client: " + reply.toString());
+                clientGateway.sendLoanReply(getRequestReply(request).getLoanRequest(), new LoanReply(reply.getInterest(), reply.getQuoteId()));
+            }
+        };
+
+        clientGateway = new LoanClientGateway() {
+            @Override
+            void onLoanRequestArrived(LoanRequest loanreq) {
+                add(loanreq);
+                BankInterestRequest bankreq = new BankInterestRequest(loanreq.getAmount(), loanreq.getTime());
+                System.out.println("Broker sending BankInterestRequest to bank: " + bankreq);
+                add(loanreq, bankreq);
+                bankGateway.sendBankRequest(bankreq);
+            }
+        };
 
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -88,6 +101,17 @@ public class LoanBrokerFrame extends JFrame {
         return null;
     }
 
+    private JListLine getRequestReply(BankInterestRequest request) {
+
+        for (int i = 0; i < listModel.getSize(); i++) {
+            JListLine rr = listModel.get(i);
+            if (rr.getBankRequest() == request) {
+                return rr;
+            }
+        }
+        return null;
+    }
+
     public void add(LoanRequest loanRequest) {
         listModel.addElement(new JListLine(loanRequest));
     }
@@ -96,6 +120,14 @@ public class LoanBrokerFrame extends JFrame {
         JListLine rr = getRequestReply(loanRequest);
         if (rr != null && bankRequest != null) {
             rr.setBankRequest(bankRequest);
+            list.repaint();
+        }
+    }
+
+    public void add(BankInterestRequest request, BankInterestReply reply) {
+        JListLine rr = getRequestReply(request);
+        if (rr != null && reply != null) {
+            rr.setBankReply(reply);;
             list.repaint();
         }
     }

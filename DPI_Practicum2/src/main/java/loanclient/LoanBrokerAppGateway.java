@@ -1,10 +1,10 @@
-package gateway.app;
+package loanclient;
 
-import gateway.jms.MessageReceiverGateway;
-import gateway.jms.MessageSenderGateway;
-import gateway.utility.LoanSerializer;
+import java.util.HashMap;
+import messaging.gateway.MessageReceiverGateway;
+import messaging.gateway.MessageSenderGateway;
+import messaging.utility.LoanSerializer;
 import java.util.Map;
-import java.util.TreeMap;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.TextMessage;
@@ -15,7 +15,7 @@ import model.loan.LoanRequest;
  *
  * @author Jeroen Roovers
  */
-abstract public class LoanBrokerAppGateway {
+abstract class LoanBrokerAppGateway {
 
     private MessageSenderGateway sender;
     private MessageReceiverGateway receiver;
@@ -23,17 +23,18 @@ abstract public class LoanBrokerAppGateway {
 
     private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
     private static final String LOANREQUEST_QUEUE_DEFAULT = "LoanRequestQueue";
-    private static final String BANKINTERESTREQUEST_QUEUE_DEFAULT = "LoanReplyQueue";
-    private static final String BANKINTERESTREPLY_QUEUE_DEFAULT = "LoanRequestQueue";
 
     // Helper map to keep track of messages we have sent.
-    private Map<String, LoanRequest> tempStorage = new TreeMap<>();
+    private Map<String, LoanRequest> tempStorage;
 
     public LoanBrokerAppGateway() {
+        tempStorage = new HashMap<>();
+        serializer = new LoanSerializer();
         try {
             sender = new MessageSenderGateway(LOANREQUEST_QUEUE_DEFAULT);
             receiver = new MessageReceiverGateway(LOANREPLY_QUEUE_DEFAULT);
             receiver.setListener((Message message) -> {
+                System.out.println("Client received message from broker");
                 try {
                     String corrID = message.getJMSCorrelationID();
                     String body = ((TextMessage) message).getText();
@@ -52,12 +53,12 @@ abstract public class LoanBrokerAppGateway {
     public void applyForLoan(LoanRequest request) {
         String body = serializer.requestToString(request);
         Message msg = sender.createTextMessage(body);
+        sender.Send(msg);
         try {
             tempStorage.put(msg.getJMSMessageID(), request);
         } catch (JMSException ex) {
             System.out.println("Couldn't read messageID from message to send");
         }
-        sender.Send(msg);
     }
 
     /**
