@@ -1,22 +1,12 @@
 package loanclient;
 
+import gateway.app.LoanBrokerAppGateway;
 import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.jms.Connection;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
-import javax.jms.ObjectMessage;
-import javax.jms.Session;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -30,7 +20,6 @@ import javax.swing.border.EmptyBorder;
 
 import messaging.requestreply.RequestReply;
 import model.loan.*;
-import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class LoanClientFrame extends JFrame {
 
@@ -45,66 +34,21 @@ public class LoanClientFrame extends JFrame {
     private JLabel lblNewLabel_1;
     private JTextField tfTime;
 
-    private Connection connection; // to connect to the JMS
-    private Session session; // session for creating consumers
-    private Destination receiveDestination; // reference to a queue/topic destination
-    private Destination sendDestination; // reference to a queue/topic destination
-    private MessageConsumer consumer; // for receiving messages
-    private MessageProducer producer; // for sending messages
-
-    private LoanRequest temporaryRequest;
+    private LoanBrokerAppGateway brokerGateway;
 
     /**
      * Create the frame.
      */
     public LoanClientFrame() {
         setTitle("Loan Client");
-
-        // load shared variables
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
-        connectionFactory.setTrustAllPackages(true);
-        try {
-            connection = connectionFactory.createConnection();
-            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-
-            // start sender
-            sendDestination = session.createQueue("ClientSendDestination");
-            producer = session.createProducer(sendDestination);
-
-            // start receiver
-            receiveDestination = session.createQueue("ClientReceiverDestination");
-            consumer = session.createConsumer(receiveDestination);
-            consumer.setMessageListener(new MessageListener() {
-                @Override
-                public void onMessage(Message message) {
-                    System.out.println("Client received message from broker");
-                    if (message instanceof ObjectMessage) {
-                        try {
-                            ObjectMessage o = (ObjectMessage) message;
-                            LoanReply lr = (LoanReply) o.getObject();
-                            RequestReply<LoanRequest, LoanReply> rr = getRequestReply(temporaryRequest);
-                            rr.setReply(lr);
-                            requestReplyList.repaint();
-                            System.out.println(rr);
-                            temporaryRequest = null;
-                        } catch (Exception ex) {
-                            System.out.println("General Exception in onMessage method for broker consumer.");
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            // Connect
-            connection.start();
-        } catch (JMSException ex) {
-            // No point in continueing, kill the app.
-            System.out.println("JMS exception in LoanClientFrame in constructor method");
-            System.out.println("Is ActiveMQ server running?");
-
-            System.out.println("Shutting down");
-            System.exit(1);
-        }
+        brokerGateway = new LoanBrokerAppGateway() {
+            @Override
+            public void onLoanReplyArrived(LoanRequest request, LoanReply reply) {
+                RequestReply<LoanRequest, LoanReply> rr = getRequestReply(request);
+                rr.setReply(reply);
+                requestReplyList.repaint();
+            }
+        };
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 684, 619);
@@ -173,23 +117,14 @@ public class LoanClientFrame extends JFrame {
         btnQueue.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                try {
-                    int ssn = Integer.parseInt(tfSSN.getText());
-                    int amount = Integer.parseInt(tfAmount.getText());
-                    int time = Integer.parseInt(tfTime.getText());
+                int ssn = Integer.parseInt(tfSSN.getText());
+                int amount = Integer.parseInt(tfAmount.getText());
+                int time = Integer.parseInt(tfTime.getText());
 
-                    LoanRequest request = new LoanRequest(ssn, amount, time);
-                    listModel.addElement(new RequestReply<>(request, null));
-                    // to do:  send the JMS with request to Loan Broker
-                    // create a message  
-                    Message msg = session.createObjectMessage(request);
-                    // send the message
-                    System.out.println("Client send message to broker: " + request.toString());
-                    temporaryRequest = request;
-                    producer.send(msg);
-                } catch (JMSException ex) {
-                    Logger.getLogger(LoanClientFrame.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                LoanRequest request = new LoanRequest(ssn, amount, time);
+                listModel.addElement(new RequestReply<>(request, null));
+                // to do:  send the JMS with request to Loan Broker
+                brokerGateway.applyForLoan(request);
 
             }
         });

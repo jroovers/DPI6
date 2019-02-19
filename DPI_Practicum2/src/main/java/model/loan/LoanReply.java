@@ -7,7 +7,7 @@ import java.io.Serializable;
  * This class stores all information about a bank offer as a response to a
  * client loan request.
  */
-public class LoanReply implements Serializable {
+public class LoanReply  {
 
     private double interest; // the interest that the bank offers
     private String bankID; // the unique quote identification

@@ -7,7 +7,7 @@ import java.io.Serializable;
  * This class stores all information about an request from a bank to offer a
  * loan to a specific client.
  */
-public class BankInterestRequest implements Serializable {
+public class BankInterestRequest  {
 
     private int amount; // the requested loan amount
     private int time; // the requested loan period

@@ -7,7 +7,7 @@ import java.io.Serializable;
  * specific client
  *
  */
-public class BankInterestReply implements Serializable {
+public class BankInterestReply {
 
     private double interest; // the loan interest
     private String bankId; // the nunique quote Id

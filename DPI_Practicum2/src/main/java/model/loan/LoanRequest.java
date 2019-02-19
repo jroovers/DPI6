@@ -8,7 +8,7 @@ import java.io.Serializable;
  * get a loan.
  *
  */
-public class LoanRequest implements Serializable {
+public class LoanRequest {
 
     private int ssn; // unique client number.
     private int amount; // the ammount to borrow

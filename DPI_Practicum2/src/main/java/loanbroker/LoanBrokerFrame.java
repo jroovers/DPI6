@@ -33,19 +33,6 @@ public class LoanBrokerFrame extends JFrame {
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
 
-    private Connection connection; // to connect to the JMS
-    private Session session; // session for creating consumers
-    private Destination clientReceiveDestination; // reference to a queue/topic destination
-    private Destination clientSendDestination; // reference to a queue/topic destination
-    private Destination bankReceiverDestination; // reference to a queue/topic destination
-    private Destination bankSendDestination; // reference to a queue/topic destination
-    private MessageConsumer clientConsumer; // for receiving messages
-    private MessageProducer clientProducer; // for sending messages
-    private MessageConsumer bankConsumer; // for receiving messages
-    private MessageProducer bankProducer; // for sending messages
-
-    private LoanRequest temporaryLRequest;
-
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -63,78 +50,6 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
-
-        // load shared variables
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
-        connectionFactory.setTrustAllPackages(true);
-        try {
-            connection = connectionFactory.createConnection();
-            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-
-            // start sender (client)
-            clientReceiveDestination = session.createQueue("ClientReceiverDestination");
-            clientProducer = session.createProducer(clientReceiveDestination);
-
-            // start sender (bank)
-            bankReceiverDestination = session.createQueue("BankReceiverDestination");
-            bankProducer = session.createProducer(bankReceiverDestination);
-
-            // start receiver (client)
-            clientSendDestination = session.createQueue("ClientSendDestination");
-            clientConsumer = session.createConsumer(clientSendDestination);
-            clientConsumer.setMessageListener(new MessageListener() {
-                @Override
-                public void onMessage(Message message) {
-                    System.out.println("Broker received message from client");
-                    if (message instanceof ObjectMessage) {
-                        try {
-                            ObjectMessage objectMessage = (ObjectMessage) message;
-                            LoanRequest lr = (LoanRequest) objectMessage.getObject();
-                            add(lr);
-                            temporaryLRequest = lr;
-                            BankInterestRequest bir = new BankInterestRequest(lr.getAmount(), lr.getTime());
-                            System.out.println("Broker sending BankInterestRequest to bank: " + bir);
-                            add(lr, bir);
-                            bankProducer.send(session.createObjectMessage(bir));
-                        } catch (JMSException ex) {
-                            System.out.println("JMS exception in onMessage method for client consumer.");
-                        }
-                    }
-                }
-            });
-
-            // start receiver (bank)
-            bankSendDestination = session.createQueue("BankSendDestination");
-            bankConsumer = session.createConsumer(bankSendDestination);
-            bankConsumer.setMessageListener(new MessageListener() {
-                @Override
-                public void onMessage(Message message) {
-                    System.out.println("Broker received message from bank");
-                    if (message instanceof ObjectMessage) {
-                        try {
-                            ObjectMessage objectMessage = (ObjectMessage) message;
-                            BankInterestReply bir = (BankInterestReply) objectMessage.getObject();
-                            add(temporaryLRequest, bir);
-                            temporaryLRequest = null;
-                            System.out.println("Broker sending LoanReply to client: " + bir.toString());
-                            clientProducer.send(session.createObjectMessage(new LoanReply(bir.getInterest(), bir.getQuoteId())));
-                        } catch (JMSException ex) {
-                            System.out.println("JMS exception in onMessage method for bank consumer.");
-                        }
-                    }
-                }
-            });
-
-            // Connect
-            connection.start();
-        } catch (JMSException ex) {
-            // No point in continueing, kill the app.
-            System.out.println("JMS exception in LoanBrokerFrame in constructor method");
-            System.out.println("Is ActiveMQ server running?");
-
-            System.out.println("Shutting down");
-            System.exit(1);
-        }
 
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
