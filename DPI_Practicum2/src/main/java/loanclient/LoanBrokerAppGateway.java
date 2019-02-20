@@ -21,7 +21,9 @@ abstract class LoanBrokerAppGateway {
     private MessageReceiverGateway receiver;
     private LoanSerializer serializer;
 
+    // should be temporary queue
     private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
+    // should be general queue
     private static final String LOANREQUEST_QUEUE_DEFAULT = "LoanRequestQueue";
 
     // Helper map to keep track of messages we have sent.
@@ -32,7 +34,7 @@ abstract class LoanBrokerAppGateway {
         serializer = new LoanSerializer();
         try {
             sender = new MessageSenderGateway(LOANREQUEST_QUEUE_DEFAULT);
-            receiver = new MessageReceiverGateway(LOANREPLY_QUEUE_DEFAULT);
+            receiver = new MessageReceiverGateway();
             receiver.setListener((Message message) -> {
                 System.out.println("Client received message from broker");
                 try {
@@ -51,10 +53,11 @@ abstract class LoanBrokerAppGateway {
     }
 
     public void applyForLoan(LoanRequest request) {
-        String body = serializer.requestToString(request);
-        Message msg = sender.createTextMessage(body);
-        sender.Send(msg);
         try {
+            String body = serializer.requestToString(request);
+            Message msg = sender.createTextMessage(body);
+            msg.setJMSReplyTo(receiver.getDestination());
+            sender.Send(msg);
             tempStorage.put(msg.getJMSMessageID(), request);
         } catch (JMSException ex) {
             System.out.println("Couldn't read messageID from message to send");

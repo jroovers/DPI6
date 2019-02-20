@@ -19,6 +19,12 @@ public class MessageReceiverGateway extends MessageAbstractGateway {
         consumer = getSession().createConsumer(getDestination());
     }
 
+    public MessageReceiverGateway() throws JMSException {
+        super("temporary");
+        super.createTempQueueForReceiver();
+        consumer = getSession().createConsumer(getDestination());
+    }
+
     public void setListener(MessageListener ml) {
         try {
             consumer.setMessageListener(ml);

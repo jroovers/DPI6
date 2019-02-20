@@ -1,11 +1,14 @@
 package messaging.gateway;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import javax.jms.TemporaryQueue;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
@@ -26,28 +29,36 @@ public abstract class MessageAbstractGateway {
     public MessageAbstractGateway(String brokerUrl, String queueName) throws JMSException {
         this.brokerUrl = brokerUrl;
         this.queueName = queueName;
-        // Create a ConnectionFactory
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(brokerUrl);
-        // Create a Connection
         connection = connectionFactory.createConnection();
         connection.start();
-        // Create a Session
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        // Create the destination (Topic or Queue)
-        destination = session.createQueue(this.queueName);
+        if (this.queueName.equals("temporary")) {
+            this.queueName = null;
+            this.destination = null;
+        } else {
+
+            destination = session.createQueue(this.queueName);
+        }
     }
 
     public MessageAbstractGateway(String queueName) throws JMSException {
         this(ActiveMQConnection.DEFAULT_BROKER_URL, queueName);
     }
 
-    protected void CloseConnections(MessageConsumer consumer) throws JMSException {
+    protected void createTempQueueForReceiver() throws JMSException {
+        TemporaryQueue tempq = session.createTemporaryQueue();
+        this.queueName = tempq.getQueueName();
+        this.destination = tempq;
+    }
+
+    protected void closeConnections(MessageConsumer consumer) throws JMSException {
         consumer.close();
         session.close();
         connection.close();
     }
 
-    protected void CloseConnections(MessageProducer producer) throws JMSException {
+    protected void closeConnections(MessageProducer producer) throws JMSException {
         producer.close();
         session.close();
         connection.close();
