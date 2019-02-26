@@ -24,7 +24,7 @@ abstract class BankAppGateway {
     private static final String BANKREQUEST_QUEUE_DEFAULT = "BankRequestQueue";
     private static final String BANKREPLY_QUEUE_DEFAULT = "BankReplyQueue";
 
-    // Helper map to keep track of messages we have received.
+    // Helper map to keep track of messages we have sent.
     private Map<String, BankInterestRequest> tempStorage;
 
     public BankAppGateway() {
@@ -32,14 +32,17 @@ abstract class BankAppGateway {
         tempStorage = new HashMap<>();
         try {
             sender = new MessageSenderGateway(BANKREQUEST_QUEUE_DEFAULT);
-            receiver = new MessageReceiverGateway(BANKREPLY_QUEUE_DEFAULT);
+            receiver = new MessageReceiverGateway();
+            // Set listener
             receiver.setListener((Message message) -> {
                 System.out.println("Broker received message from bank");
                 try {
+                    // Receive reply
                     String body = ((TextMessage) message).getText();
                     BankInterestReply reply = serializer.replyFromString(body);
-
-                    BankInterestRequest request = tempStorage.get(message.getJMSCorrelationID());
+                    // Do the JMS correlation thing
+                    String corrId = message.getJMSCorrelationID();
+                    BankInterestRequest request = tempStorage.get(corrId);
                     tempStorage.remove(message.getJMSCorrelationID());
                     onBankReplyArrived(request, reply);
                 } catch (JMSException ex) {
@@ -55,8 +58,9 @@ abstract class BankAppGateway {
         try {
             String body = serializer.requestToString(request);
             Message msg = sender.createTextMessage(body);
+            msg.setJMSReplyTo(receiver.getDestination());
 
-            // send and keep track of original message id.
+            // send and keep track of original message.
             sender.Send(msg);
             tempStorage.put(msg.getJMSMessageID(), request);
         } catch (JMSException ex) {

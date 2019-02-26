@@ -21,30 +21,32 @@ abstract class LoanBrokerAppGateway {
     private MessageReceiverGateway receiver;
     private LoanSerializer serializer;
 
-    // should be temporary queue
-    private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
-    // should be general queue
     private static final String LOANREQUEST_QUEUE_DEFAULT = "LoanRequestQueue";
+    private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
 
     // Helper map to keep track of messages we have sent.
     private Map<String, LoanRequest> tempStorage;
 
     public LoanBrokerAppGateway() {
-        tempStorage = new HashMap<>();
         serializer = new LoanSerializer();
+        tempStorage = new HashMap<>();
         try {
             sender = new MessageSenderGateway(LOANREQUEST_QUEUE_DEFAULT);
             receiver = new MessageReceiverGateway();
+            // Set listener
             receiver.setListener((Message message) -> {
                 System.out.println("Client received message from broker");
                 try {
-                    String corrID = message.getJMSCorrelationID();
+                    // Receive reply
                     String body = ((TextMessage) message).getText();
                     LoanReply reply = serializer.replyFromString(body);
-                    LoanRequest originalRequest = tempStorage.get(corrID);
-                    onLoanReplyArrived(originalRequest, reply);
+                    // Do the JMS correlation thing
+                    String corrId = message.getJMSCorrelationID();
+                    LoanRequest request = tempStorage.get(corrId);
+                    tempStorage.remove(corrId);
+                    onLoanReplyArrived(request, reply);
                 } catch (JMSException ex) {
-                    System.out.println("Error while receiving loanreply");
+                    System.out.println("Error while receiving loanReply");
                 }
             });
         } catch (JMSException ex) {
@@ -57,6 +59,8 @@ abstract class LoanBrokerAppGateway {
             String body = serializer.requestToString(request);
             Message msg = sender.createTextMessage(body);
             msg.setJMSReplyTo(receiver.getDestination());
+
+            // send and keep track of original message
             sender.Send(msg);
             tempStorage.put(msg.getJMSMessageID(), request);
         } catch (JMSException ex) {

@@ -2,6 +2,7 @@ package bank;
 
 import java.util.HashMap;
 import java.util.Map;
+import javax.jms.Destination;
 import messaging.gateway.MessageReceiverGateway;
 import messaging.gateway.MessageSenderGateway;
 import javax.jms.JMSException;
@@ -25,13 +26,13 @@ abstract class LoanBrokerAppGateway {
     private static final String BANKREPLY_QUEUE_DEFAULT = "BankReplyQueue";
 
     // Helper map to keep track of messages we have received.
-    private Map<BankInterestRequest, String> tempStorage;
+    private Map<BankInterestRequest, Message> tempStorage;
 
     public LoanBrokerAppGateway() {
         serializer = new BankSerializer();
         tempStorage = new HashMap<>();
         try {
-            sender = new MessageSenderGateway(BANKREPLY_QUEUE_DEFAULT);
+            sender = new MessageSenderGateway();
             receiver = new MessageReceiverGateway(BANKREQUEST_QUEUE_DEFAULT);
             receiver.setListener((Message message) -> {
                 System.out.println("Bank received message from broker");
@@ -39,7 +40,7 @@ abstract class LoanBrokerAppGateway {
                     String corrID = message.getJMSMessageID();
                     String body = ((TextMessage) message).getText();
                     BankInterestRequest request = serializer.requestFromString(body);
-                    tempStorage.put(request, message.getJMSMessageID());
+                    tempStorage.put(request, message);
                     onBankRequestArrived(request);
                 } catch (JMSException ex) {
                     System.out.println("Error while receiving loanreply");
@@ -53,14 +54,17 @@ abstract class LoanBrokerAppGateway {
     public void sendBankReply(BankInterestRequest request, BankInterestReply reply) {
         try {
             String body = serializer.replyToString(reply);
-            Message msg = sender.createTextMessage(body);
-            // fetch original id
-            String jmsid = tempStorage.get(request);
-            if (jmsid == null) {
+            Message replyMessage = sender.createTextMessage(body);
+            Message requestMessage = tempStorage.get(request);
+
+            // fetch original id and set return address
+            String jmsid = requestMessage.getJMSMessageID();
+            Destination replyAddress = requestMessage.getJMSReplyTo();
+            if (requestMessage.getJMSMessageID() == null) {
                 throw new NullPointerException("jmsid was not found in map in method sendBankReply");
             }
-            msg.setJMSCorrelationID(jmsid);
-            sender.Send(msg);
+            replyMessage.setJMSCorrelationID(jmsid);
+            sender.Send(replyAddress, replyMessage);
             tempStorage.remove(request);
         } catch (JMSException ex) {
             System.out.println("Failed to set correlation ID in sendbankreply");

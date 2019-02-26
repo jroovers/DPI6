@@ -14,7 +14,7 @@ import model.loan.LoanRequest;
 
 /**
  *
- * @author Jeroen Roovers <jroovers>
+ * @author Jeroen Roovers
  */
 abstract class LoanClientGateway {
 
@@ -22,10 +22,10 @@ abstract class LoanClientGateway {
     private MessageReceiverGateway receiver;
     private LoanSerializer serializer;
 
-    private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
     private static final String LOANREQUEST_QUEUE_DEFAULT = "LoanRequestQueue";
+    private static final String LOANREPLY_QUEUE_DEFAULT = "LoanReplyQueue";
 
-    // Helper map to keep track of messages we have sent.
+    // Helper map to keep track of messages we have received.
     private Map<LoanRequest, Message> tempStorage;
 
     public LoanClientGateway() {
@@ -54,15 +54,17 @@ abstract class LoanClientGateway {
     public void sendLoanReply(LoanRequest request, LoanReply reply) {
         try {
             String body = serializer.replyToString(reply);
-            Message replymsg = sender.createTextMessage(body);
-            Message requestmsg = tempStorage.get(request);
-            String jmsid = requestmsg.getJMSMessageID();
-            Destination replyaddress = requestmsg.getJMSReplyTo();
-            if (requestmsg.getJMSMessageID() == null) {
+            Message replyMessage = sender.createTextMessage(body);
+            Message requestMessage = tempStorage.get(request);
+
+            // fetch original id and set return address
+            String jmsid = requestMessage.getJMSMessageID();
+            Destination replyAddress = requestMessage.getJMSReplyTo();
+            if (requestMessage.getJMSMessageID() == null) {
                 throw new NullPointerException("jmsid was not found in map in method sendBankReply");
             }
-            replymsg.setJMSCorrelationID(jmsid);
-            sender.Send(replyaddress, replymsg);
+            replyMessage.setJMSCorrelationID(jmsid);
+            sender.Send(replyAddress, replyMessage);
             tempStorage.remove(request);
         } catch (JMSException ex) {
             System.out.println("Failed to set correlation ID in sendLoanReply");
