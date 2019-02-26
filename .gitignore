@@ -31,6 +31,9 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
-/Kwetter/Backend/target/
+**/nbactions.xml
+
+# Maven project target dirs
 /DPI_Practicum1/target/
 /DPI_Practicum2/target/
+/DPI_Practicum3/target/
