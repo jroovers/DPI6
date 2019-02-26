@@ -22,22 +22,18 @@ abstract class LoanBrokerAppGateway {
     private MessageReceiverGateway receiver;
     private BankSerializer serializer;
 
-    private static final String BANKREQUEST_QUEUE_DEFAULT = "BankRequestQueue";
-    private static final String BANKREPLY_QUEUE_DEFAULT = "BankReplyQueue";
-
     // Helper map to keep track of messages we have received.
     private Map<BankInterestRequest, Message> tempStorage;
 
-    public LoanBrokerAppGateway() {
+    public LoanBrokerAppGateway(String queueToListenOn) {
         serializer = new BankSerializer();
         tempStorage = new HashMap<>();
         try {
             sender = new MessageSenderGateway();
-            receiver = new MessageReceiverGateway(BANKREQUEST_QUEUE_DEFAULT);
+            receiver = new MessageReceiverGateway(queueToListenOn);
             receiver.setListener((Message message) -> {
                 System.out.println("Bank received message from broker");
                 try {
-                    String corrID = message.getJMSMessageID();
                     String body = ((TextMessage) message).getText();
                     BankInterestRequest request = serializer.requestFromString(body);
                     tempStorage.put(request, message);
@@ -59,11 +55,13 @@ abstract class LoanBrokerAppGateway {
 
             // fetch original id and set return address
             String jmsid = requestMessage.getJMSMessageID();
+            Integer aggID = requestMessage.getIntProperty("aggregationID");
             Destination replyAddress = requestMessage.getJMSReplyTo();
             if (requestMessage.getJMSMessageID() == null) {
                 throw new NullPointerException("jmsid was not found in map in method sendBankReply");
             }
             replyMessage.setJMSCorrelationID(jmsid);
+            replyMessage.setIntProperty("aggregationID", aggID);
             sender.Send(replyAddress, replyMessage);
             tempStorage.remove(request);
         } catch (JMSException ex) {

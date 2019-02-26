@@ -15,13 +15,34 @@ public class main {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    JMSBankFrame bank = new JMSBankFrame();
+                    JMSBankFrame bank = new JMSBankFrame("ABN AMRO", "abnRequestQueue");
                     bank.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         });
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    JMSBankFrame bank = new JMSBankFrame("Rabobank", "raboRequestQueue");
+                    bank.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+                    JMSBankFrame bank = new JMSBankFrame("ING", "ingRequestQueue");
+                    bank.setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {

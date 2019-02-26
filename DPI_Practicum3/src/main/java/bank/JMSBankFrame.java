@@ -33,8 +33,8 @@ public class JMSBankFrame extends JFrame {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    JMSBankFrame frame = new JMSBankFrame();
-                    frame.setVisible(true);
+                    JMSBankFrame frameABN = new JMSBankFrame("ABN AMRO", "abnRequestQueue");
+                    frameABN.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -45,14 +45,14 @@ public class JMSBankFrame extends JFrame {
     /**
      * Create the frame.
      */
-    public JMSBankFrame() {
-        brokerGateway = new LoanBrokerAppGateway() {
+    public JMSBankFrame(String bankName, String ReceiverQueue) {
+        brokerGateway = new LoanBrokerAppGateway(ReceiverQueue) {
             @Override
             public void onBankRequestArrived(BankInterestRequest request) {
                 listModel.addElement(new RequestReply<>(request, null));
             }
         };
-        setTitle("JMS Bank - ABN AMRO");
+        setTitle("JMS Bank - " + bankName);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
         contentPane = new JPanel();
@@ -100,7 +100,7 @@ public class JMSBankFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
                 double interest = Double.parseDouble((tfReply.getText()));
-                BankInterestReply reply = new BankInterestReply(interest, "ABN AMRO");
+                BankInterestReply reply = new BankInterestReply(interest, bankName);
                 if (rr != null && reply != null) {
                     rr.setReply(reply);
                     list.repaint();

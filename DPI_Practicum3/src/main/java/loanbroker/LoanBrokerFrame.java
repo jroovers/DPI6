@@ -1,9 +1,11 @@
 package loanbroker;
 
+import loanbroker.scattergather.PropertyService;
 import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.Properties;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
@@ -43,13 +45,18 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
-
         bankGateway = new BankAppGateway() {
             @Override
             public void onBankReplyArrived(BankInterestRequest request, BankInterestReply reply) {
-                add(request, reply);
-                System.out.println("Broker sending LoanReply to client: " + reply.toString());
-                clientGateway.sendLoanReply(getRequestReply(request).getLoanRequest(), new LoanReply(reply.getInterest(), reply.getQuoteId()));
+                if (reply != null) {
+                    add(request, reply);
+                    System.out.println("Broker sending LoanReply to client: " + reply.toString());
+                    clientGateway.sendLoanReply(getRequestReply(request).getLoanRequest(), new LoanReply(reply.getInterest(), reply.getQuoteId()));
+                } else {
+                    BankInterestReply ineligibleReply = new BankInterestReply(-1.0, "NOT ELIGIBLE");
+                    add(request, ineligibleReply);
+                    clientGateway.sendLoanReply(getRequestReply(request).getLoanRequest(), new LoanReply(ineligibleReply.getInterest(), ineligibleReply.getQuoteId()));
+                }
             }
         };
 
