@@ -32,8 +32,7 @@ dist/
 nbdist/
 .nb-gradle/
 **/nbactions.xml
+**/nb-configuration.xml
 
 # Maven project target dirs
-/DPI_Practicum1/target/
-/DPI_Practicum2/target/
-/DPI_Practicum3/target/
+/*/target
