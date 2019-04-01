@@ -9,7 +9,7 @@ import messaging.gateway.MessageReceiverGateway;
 import messaging.gateway.MessageSenderGateway;
 import model.query.ClientQueryReply;
 import model.query.ClientQueryRequest;
-import model.serializer.QuerySerializer;
+import messaging.serializer.ClientSerializer;
 
 /**
  *
@@ -19,13 +19,13 @@ abstract class ClientToBrokerGateway {
 
     private MessageSenderGateway sender;
     private MessageReceiverGateway receiver;
-    private QuerySerializer serializer;
+    private ClientSerializer serializer;
 
     private static final String CLIENTQUERY_QUEUE_DEFAULT = "ClientQueryRequestQueue";
     private Map<String, ClientQueryRequest> tempStorage;
 
     public ClientToBrokerGateway() {
-        serializer = new QuerySerializer();
+        serializer = new ClientSerializer();
         tempStorage = new HashMap<>();
 
         try {

@@ -45,6 +45,7 @@ public class BrokerFrame extends JFrame {
             @Override
             public void onQueryRequestArrived(ClientQueryRequest request) {
                 System.out.println("received request");
+                add(request);
             }
         };
 

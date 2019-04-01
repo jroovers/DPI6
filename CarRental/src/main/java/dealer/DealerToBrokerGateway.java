@@ -1,5 +1,14 @@
-package broker;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package dealer;
 
+/**
+ *
+ * @author Jeroen Roovers <jroovers>
+ */
 import java.util.HashMap;
 import java.util.Map;
 import javax.jms.Destination;
@@ -8,40 +17,34 @@ import javax.jms.Message;
 import javax.jms.TextMessage;
 import messaging.gateway.MessageReceiverGateway;
 import messaging.gateway.MessageSenderGateway;
-import model.query.ClientQueryReply;
-import model.query.ClientQueryRequest;
-import messaging.serializer.ClientSerializer;
+import model.answer.DealerQueryRequest;
+import messaging.serializer.DealerSerializer;
+import model.answer.DealerQueryReply;
 
-/**
- *
- * @author Jeroen Roovers
- */
-abstract class BrokerToClientGateway {
+abstract class DealerToBrokerGateway {
 
     private MessageSenderGateway sender;
     private MessageReceiverGateway receiver;
-    private ClientSerializer serializer;
+    private DealerSerializer serializer;
 
-    private static final String CLIENTQUERY_QUEUE_DEFAULT = "ClientQueryRequestQueue";
-    private Map<ClientQueryRequest, Message> tempStorage;
+    // Helper map to keep track of messages we have received.
+    private Map<DealerQueryRequest, Message> tempStorage;
 
-    public BrokerToClientGateway() {
-        serializer = new ClientSerializer();
+    public DealerToBrokerGateway(String queueToListenOn) {
+        serializer = new DealerSerializer();
         tempStorage = new HashMap<>();
         try {
             sender = new MessageSenderGateway();
-            receiver = new MessageReceiverGateway(CLIENTQUERY_QUEUE_DEFAULT);
-            // Set listener
+            receiver = new MessageReceiverGateway(queueToListenOn);
             receiver.setListener((Message message) -> {
-                System.out.println("Broker received message from client");
+                System.out.println("Dealer received message from broker");
                 try {
-                    String corrID = message.getJMSCorrelationID();
                     String body = ((TextMessage) message).getText();
-                    ClientQueryRequest request = serializer.requestFromString(body);
+                    DealerQueryRequest request = serializer.requestFromString(body);
                     tempStorage.put(request, message);
-                    onQueryRequestArrived(request);
+                    onDealerRequestArrived(request);
                 } catch (JMSException ex) {
-                    System.out.println("Error while receiving ClientQueryRequest");
+                    System.out.println("Error while receiving request");
                 }
             });
         } catch (JMSException ex) {
@@ -49,7 +52,7 @@ abstract class BrokerToClientGateway {
         }
     }
 
-    public void sendQueryReply(ClientQueryRequest request, ClientQueryReply reply) {
+    public void sendDealerReply(DealerQueryRequest request, DealerQueryReply reply) {
         try {
             String body = serializer.replyToString(reply);
             Message replyMessage = sender.createTextMessage(body);
@@ -57,15 +60,17 @@ abstract class BrokerToClientGateway {
 
             // fetch original id and set return address
             String jmsid = requestMessage.getJMSMessageID();
+            Integer aggID = requestMessage.getIntProperty("aggregationID");
             Destination replyAddress = requestMessage.getJMSReplyTo();
             if (requestMessage.getJMSMessageID() == null) {
-                throw new NullPointerException("jmsid was not found in map in method sendBankReply");
+                throw new NullPointerException("jmsid was not found in map in method sendDealerReply");
             }
             replyMessage.setJMSCorrelationID(jmsid);
+            replyMessage.setIntProperty("aggregationID", aggID);
             sender.Send(replyAddress, replyMessage);
             tempStorage.remove(request);
         } catch (JMSException ex) {
-            System.out.println("Failed to set correlation ID in sendLoanReply");
+            System.out.println("Failed to set correlation ID in sendbankreply");
         }
     }
 
@@ -74,7 +79,7 @@ abstract class BrokerToClientGateway {
      * request is fetched by the app gateway.
      *
      * @param request contains the original request
-     * @param reply contains the reply
      */
-    abstract public void onQueryRequestArrived(ClientQueryRequest request);
+    abstract public void onDealerRequestArrived(DealerQueryRequest request);
+
 }

@@ -12,7 +12,6 @@ import lombok.ToString;
 @NoArgsConstructor
 @Getter
 @Setter
-@ToString
 public class Car extends Vehicle {
 
     private int horsepower;
@@ -20,5 +19,14 @@ public class Car extends Vehicle {
     public Car(Dealer dealer, String brand, String color, int seatCount, int horsepower) {
         super(dealer, brand, color, seatCount);
         this.horsepower = horsepower;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder string = new StringBuilder();
+        string.append("Car{");
+        string.append("brand=").append(this.getBrand()).append(",");
+        string.append("}");
+        return string.toString();
     }
 }

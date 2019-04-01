@@ -1,4 +1,4 @@
-package model.serializer;
+package messaging.serializer;
 
 import com.owlike.genson.Genson;
 

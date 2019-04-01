@@ -1,6 +1,6 @@
 package messaging.gateway;
 
-import model.serializer.ISerializer;
+import messaging.serializer.ISerializer;
 
 /**
  *

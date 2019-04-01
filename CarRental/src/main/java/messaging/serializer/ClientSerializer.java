@@ -1,4 +1,4 @@
-package model.serializer;
+package messaging.serializer;
 
 import model.query.ClientQueryReply;
 import model.query.ClientQueryRequest;
@@ -7,7 +7,7 @@ import model.query.ClientQueryRequest;
  *
  * @author Jeroen Roovers
  */
-public class QuerySerializer implements ISerializer<ClientQueryRequest, ClientQueryReply> {
+public class ClientSerializer implements ISerializer<ClientQueryRequest, ClientQueryReply> {
 
     @Override
     public String requestToString(ClientQueryRequest request) {
