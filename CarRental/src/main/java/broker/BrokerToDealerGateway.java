@@ -23,6 +23,7 @@ abstract class BrokerToDealerGateway {
     // private Aggregator<BankInterestReply> aggregator;
     private Map<String, MessageSenderGateway> senders;
     private MessageReceiverGateway receiver;
+    private MessageReceiverGateway controlreceiver;
     private DealerSerializer serializer;
 
     // Helper map to keep track of messages we have sent.

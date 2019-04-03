@@ -36,3 +36,4 @@ nbdist/
 
 # Maven project target dirs
 /*/target
+/CarRental/nbproject/

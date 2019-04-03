@@ -6,8 +6,11 @@
 ## Patronen
 
 - Request reply
+  - Verwerkte in app gateways
 - Return address
+  - Verwerkt in app gateways
 - Dynamic Router
+  - Verwerkt in package messaging.dynrouter
 
 Ter uitbreiding:
 - Service activator
