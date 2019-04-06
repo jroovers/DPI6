@@ -31,28 +31,21 @@ abstract class RoutingController {
                 try {
                     String body = ((TextMessage) message).getText();
                     ControlMessage ctrl = serializer.stringToControl(body);
-                    // If does exist, register this dealer.
-                    if (queueAndFilters.containsKey(ctrl.getQueueName())) {
-                        switch (ctrl.getType()) {
-                            case CREATE:
-
-                                break;
-                            case UPDATE:
-                                
-                                break;
-                            case DELETE:
-
-                                break;
-                            default:
-
-                                break;
-                        }
-                    } // If does not exist, register this dealer.
-                    else {
-                        
-
+                    switch (ctrl.getType()) {
+                        case CREATE:
+                            this.queueAndFilters.put(ctrl.getQueueName(), ctrl.getFilter());
+                            break;
+                        case UPDATE:
+                            this.queueAndFilters.put(ctrl.getQueueName(), ctrl.getFilter());
+                            break;
+                        case DELETE:
+                            this.queueAndFilters.remove(ctrl.getQueueName());
+                            break;
+                        default:
+                            // dunno?
+                            break;
                     }
-
+                    // If does not exist, register this dealer.
                 } catch (JMSException ex) {
                     Logger.getLogger(RoutingController.class.getName()).log(Level.SEVERE, null, ex);
                 }
