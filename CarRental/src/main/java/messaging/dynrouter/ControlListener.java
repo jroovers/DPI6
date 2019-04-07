@@ -15,17 +15,13 @@ import model.Dealer;
  *
  * @author Jeroen Roovers
  */
-abstract class RoutingController {
+public abstract class ControlListener {
 
     private MessageReceiverGateway controlReceiver;
     private ControlSerializer serializer;
-    HashMap<String, String> queueAndFilters;
-    List<String> knownDealerQueues;
 
-    public RoutingController() {
+    public ControlListener() {
         try {
-            this.queueAndFilters = new HashMap<>();
-            this.knownDealerQueues = new ArrayList<>();
             this.controlReceiver = new MessageReceiverGateway("brokerControlQueue");
             this.controlReceiver.setListener((message) -> {
                 try {
@@ -33,28 +29,27 @@ abstract class RoutingController {
                     ControlMessage ctrl = serializer.stringToControl(body);
                     switch (ctrl.getType()) {
                         case CREATE:
-                            this.queueAndFilters.put(ctrl.getQueueName(), ctrl.getFilter());
+                            onNewDealerFound(ctrl.getDealer(), ctrl.getQueueName(), ctrl.getFilter());
                             break;
                         case UPDATE:
-                            this.queueAndFilters.put(ctrl.getQueueName(), ctrl.getFilter());
+                            // NOT IMPLEMENTED
                             break;
                         case DELETE:
-                            this.queueAndFilters.remove(ctrl.getQueueName());
+                            // NOT IMPLEMENTED
                             break;
                         default:
-                            // dunno?
                             break;
                     }
                     // If does not exist, register this dealer.
                 } catch (JMSException ex) {
-                    Logger.getLogger(RoutingController.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(ControlListener.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
             });
         } catch (JMSException ex) {
-            Logger.getLogger(RoutingController.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ControlListener.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
-    abstract public String onNewDealerFound();
+    abstract public void onNewDealerFound(Dealer dealer, String queue, String filter);
 }
