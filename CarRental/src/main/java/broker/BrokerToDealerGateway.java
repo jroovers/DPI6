@@ -1,6 +1,8 @@
 package broker;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -14,9 +16,11 @@ import messaging.dynrouter.DealerExtended;
 import messaging.gateway.MessageReceiverGateway;
 import messaging.gateway.MessageSenderGateway;
 import messaging.serializer.DealerSerializer;
+import model.Car;
 import model.Dealer;
 import model.answer.DealerQueryReply;
 import model.answer.DealerQueryRequest;
+import model.query.ClientQueryReply;
 import net.sourceforge.jeval.EvaluationException;
 
 /**
@@ -26,7 +30,6 @@ import net.sourceforge.jeval.EvaluationException;
 abstract class BrokerToDealerGateway {
 
     private RecipientList recipientlist;
-    // TO DO replace aggregator with dynamic router
     private Aggregator<DealerQueryReply> aggregator;
     private Map<String, MessageSenderGateway> senders;
     private MessageReceiverGateway receiver;
@@ -50,8 +53,11 @@ abstract class BrokerToDealerGateway {
                 @Override
                 public void onNewDealerFound(Dealer dealer, String queue, String filter) {
                     try {
+                        System.out.println("Broker received dealer control message.");
                         recipientlist.AddNewDealer(dealer, queue, filter);
-                        senders.put(dealer.getName(), new MessageSenderGateway(queue));
+                        // Senders are unique on a QUEUE basis
+                        senders.put(queue, new MessageSenderGateway(queue));
+                        newDealerRegistered(dealer, queue, filter);
                     } catch (JMSException ex) {
                         System.out.println("Could not start new receiver for dealer: " + dealer.getName());
                     }
@@ -84,19 +90,22 @@ abstract class BrokerToDealerGateway {
             // Timer event or all replies received, force send reply to client
             System.out.println("Broker received all replies for aggregation id " + aggId.toString());
             // TO DO: Get all replies and merge into answer
+            List<Car> compositeList = new LinkedList<Car>();
             for (DealerQueryReply reply : aggregator.getObjectsAndClearByAggregationId(aggId)) {
-
+                compositeList.addAll(reply.getCars());
             }
             DealerQueryRequest originalrequest = requestStorage.get(aggId);
+            DealerQueryReply compositeReply = new DealerQueryReply();
+            compositeReply.setCars(compositeList);
             // TO DO send merge answer
-            //onBankReplyArrived(originalrequest, compositeReply??);
+            if (compositeReply.getCars().size() == 0) {
+                onDealerReplyArrived(originalrequest, null);
+            } else {
+                onDealerReplyArrived(originalrequest, compositeReply);
+            }
             // Cleanup
             requestStorage.remove(aggId);
-        } else {
-            // messages update
-
         }
-
     }
 
     public void sendDealerRequest(DealerQueryRequest request) {
@@ -106,7 +115,7 @@ abstract class BrokerToDealerGateway {
             int aggid = aggregator.getNewAggregationCounter();
             // For each eligable bank, register to aggregator and send message.
             for (DealerExtended dealer : recipientlist.getEligableDealers(request)) {
-                MessageSenderGateway dealerSender = senders.get(dealer.getName());
+                MessageSenderGateway dealerSender = senders.get(dealer.getQueuename());
                 Message msg = dealerSender.createTextMessage(body);
                 msg.setJMSReplyTo(receiver.getDestination());
                 msg.setIntProperty("aggregationID", aggid);
@@ -124,7 +133,8 @@ abstract class BrokerToDealerGateway {
                         // After 5 seconds force to send a reply to client.
                         // Even if not all dealers sent a reply.
                         // Don't do anything if reply was already sent.
-                        tryProcessReplies(true, null);
+                        System.out.println("Dealer: 5 seconds since request, forcing process...");
+                        tryProcessReplies(true, aggid);
                     }
                 }, 5000);
                 System.out.println("Broker Sent to " + aggregator.getObjectCount(aggid).toString() + " dealers with aggregation id " + aggid);
@@ -144,5 +154,7 @@ abstract class BrokerToDealerGateway {
      * @param reply contains the reply
      */
     abstract public void onDealerReplyArrived(DealerQueryRequest request, DealerQueryReply reply);
+
+    abstract public void newDealerRegistered(Dealer dealer, String queue, String filter);
 
 }

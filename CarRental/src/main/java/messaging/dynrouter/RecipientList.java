@@ -1,6 +1,7 @@
 package messaging.dynrouter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import model.Dealer;
 import model.answer.DealerQueryRequest;
@@ -13,12 +14,12 @@ import net.sourceforge.jeval.Evaluator;
  */
 public class RecipientList {
 
-    private List<DealerExtended> dealerList;
-
+    private HashMap<String, DealerExtended> dealerMap;
     private Evaluator evaluator;
 
     public RecipientList() {
         this.evaluator = new Evaluator();
+        this.dealerMap = new HashMap<>();
     }
 
     /**
@@ -30,19 +31,18 @@ public class RecipientList {
      */
     public List<DealerExtended> getEligableDealers(DealerQueryRequest request) throws EvaluationException {
         List<DealerExtended> eligableDealers = new ArrayList<>();
-        for (DealerExtended dealer : dealerList) {
-            // evaluate
+        dealerMap.entrySet().forEach((t) -> {
             if (true) {
-                eligableDealers.add(dealer);
-                System.out.println("Filter: " + dealer.getName() + " is eligible for this loanrequest.");
+                eligableDealers.add(t.getValue());
+                System.out.println("Filter: " + t.getValue().getName() + " is eligible for this dealerRequet");
             }
-        }
+        });
         return eligableDealers;
     }
 
     public void AddNewDealer(Dealer dealer, String channel, String filter) {
         DealerExtended de = new DealerExtended(channel, filter, dealer.getName());
-        this.dealerList.add(de);
+        this.dealerMap.put(channel, de);
     }
 
     /**
@@ -65,6 +65,7 @@ public class RecipientList {
     }
 
     public List<DealerExtended> getDealerList() {
-        return dealerList;
+        List<DealerExtended> dealers = new ArrayList<>(dealerMap.values());
+        return dealers;
     }
 }

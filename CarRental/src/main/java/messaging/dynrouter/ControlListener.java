@@ -21,6 +21,7 @@ public abstract class ControlListener {
     private ControlSerializer serializer;
 
     public ControlListener() {
+        this.serializer = new ControlSerializer();
         try {
             this.controlReceiver = new MessageReceiverGateway("brokerControlQueue");
             this.controlReceiver.setListener((message) -> {

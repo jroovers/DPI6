@@ -14,12 +14,14 @@ public class Aggregator<T> {
 
     private Map<Integer, LinkedList<T>> storage;
     private Map<Integer, Integer> aggregatorCounter;
+    private List<Integer> deletedAggregators;
     private int aggregationCount;
 
     public Aggregator() {
         this.aggregationCount = 1;
         this.storage = new HashMap<>();
         this.aggregatorCounter = new HashMap<>();
+        this.deletedAggregators = new LinkedList<>();
     }
 
     /**
@@ -54,12 +56,16 @@ public class Aggregator<T> {
      * @return true if all expected objects are received
      */
     public boolean storeObject(Integer aggregationID, T object) {
-        if (!storage.containsKey(aggregationID)) {
-            storage.put(aggregationID, new LinkedList<>());
-        }
-        storage.get(aggregationID).add(object);
-        if (aggregatorCounter.get(aggregationID).equals(this.storage.get(aggregationID).size())) {
-            return true;
+        if (deletedAggregators.contains(aggregationID)) {
+            System.out.println("Aggregator received object but objects for this aggregationID already processed.");
+        } else {
+            if (!storage.containsKey(aggregationID)) {
+                storage.put(aggregationID, new LinkedList<>());
+            }
+            storage.get(aggregationID).add(object);
+            if (aggregatorCounter.get(aggregationID).equals(this.storage.get(aggregationID).size())) {
+                return true;
+            }
         }
         return false;
     }
@@ -72,10 +78,21 @@ public class Aggregator<T> {
      * @return
      */
     public List<T> getObjectsAndClearByAggregationId(Integer aggregationId) {
-        LinkedList<T> output = new LinkedList<>(this.storage.get(aggregationId));
-        this.storage.remove(aggregationId);
-        this.aggregatorCounter.remove(aggregationId);
-        return output;
+        if (deletedAggregators.contains(aggregationId)) {
+            return null;
+        } else {
+            if (this.storage.containsKey(aggregationId)) {
+                LinkedList<T> output = new LinkedList<>(this.storage.get(aggregationId));
+                this.storage.remove(aggregationId);
+                this.aggregatorCounter.remove(aggregationId);
+                this.deletedAggregators.add(aggregationId);
+                return output;
+            } // Never received any message.
+            else {
+                this.deletedAggregators.add(aggregationId);
+                return new LinkedList<>();
+            }
+        }
     }
 
     /**

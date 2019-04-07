@@ -15,16 +15,19 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.TextMessage;
+import messaging.dynrouter.ControlSender;
 import messaging.gateway.MessageReceiverGateway;
 import messaging.gateway.MessageSenderGateway;
 import model.answer.DealerQueryRequest;
 import messaging.serializer.DealerSerializer;
+import model.Dealer;
 import model.answer.DealerQueryReply;
 
 abstract class DealerToBrokerGateway {
 
     private MessageSenderGateway sender;
     private MessageReceiverGateway receiver;
+    private ControlSender control;
     private DealerSerializer serializer;
 
     // Helper map to keep track of messages we have received.
@@ -34,6 +37,7 @@ abstract class DealerToBrokerGateway {
         serializer = new DealerSerializer();
         tempStorage = new HashMap<>();
         try {
+            control = new ControlSender();
             sender = new MessageSenderGateway();
             receiver = new MessageReceiverGateway(queueToListenOn);
             receiver.setListener((Message message) -> {
@@ -81,5 +85,9 @@ abstract class DealerToBrokerGateway {
      * @param request contains the original request
      */
     abstract public void onDealerRequestArrived(DealerQueryRequest request);
+
+    public void sendControlMessage(Dealer dealer, String queuename, String filter) {
+        this.control.sendControlMessage(dealer, queuename, filter);
+    }
 
 }

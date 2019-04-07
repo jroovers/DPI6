@@ -18,6 +18,7 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 import messaging.requestreply.RequestReply;
+import model.Dealer;
 import model.answer.DealerQueryReply;
 import model.answer.DealerQueryRequest;
 
@@ -34,8 +35,8 @@ public class DealerFrame extends JFrame {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    DealerFrame frameABN = new DealerFrame("Dealer A", "dealerAQueue");
-                    frameABN.setVisible(true);
+                    DealerFrame frameeA = new DealerFrame("Dealer Solo", "dealerSoloQueue", "");
+                    frameeA.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -46,7 +47,7 @@ public class DealerFrame extends JFrame {
     /**
      * Create the frame.
      */
-    public DealerFrame(String dealerName, String receiverQueue) {
+    public DealerFrame(String dealerName, String receiverQueue, String filter) {
         this.dealername = dealerName;
         gateway = new DealerToBrokerGateway(receiverQueue) {
             @Override
@@ -54,7 +55,7 @@ public class DealerFrame extends JFrame {
                 listModel.addElement(new RequestReply<>(request, null));
             }
         };
-
+        gateway.sendControlMessage(new Dealer(this.dealername), receiverQueue, filter);
         setTitle("Cardealer - " + dealerName);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
