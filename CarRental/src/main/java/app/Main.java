@@ -15,7 +15,7 @@ public class Main {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    DealerFrame bank = new DealerFrame("Dealer A", "dealerAQueue", "");
+                    DealerFrame bank = new DealerFrame("Dealer A", "dealerAQueue", "#{seats} >= 4 && #{period} >= 7 && #{price} >= 100");
                     bank.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -25,7 +25,7 @@ public class Main {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    DealerFrame bank = new DealerFrame("Dealer B", "dealerBQueue", "");
+                    DealerFrame bank = new DealerFrame("Dealer B", "dealerBQueue", "#{seats} >= 4 && #{period} >= 1 && #{price} >= 149");
                     bank.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -35,7 +35,7 @@ public class Main {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    DealerFrame bank = new DealerFrame("Dealer C", "dealerCQueue", "");
+                    DealerFrame bank = new DealerFrame("Dealer C", "dealerCQueue", "#{seats} >= 2 && #{period} >= 1 && #{price} >= 350");
                     bank.setVisible(true);
                 } catch (Exception e) {
                     e.printStackTrace();

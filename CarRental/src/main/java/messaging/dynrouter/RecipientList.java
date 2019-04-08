@@ -32,9 +32,14 @@ public class RecipientList {
     public List<DealerExtended> getEligableDealers(DealerQueryRequest request) throws EvaluationException {
         List<DealerExtended> eligableDealers = new ArrayList<>();
         dealerMap.entrySet().forEach((t) -> {
-            if (true) {
-                eligableDealers.add(t.getValue());
-                System.out.println("Filter: " + t.getValue().getName() + " is eligible for this dealerRequet");
+            try {
+                if (evaluate(t.getValue().getFilter(), request.getSeats(), request.getPeriod(), request.getPrice())) {
+                    eligableDealers.add(t.getValue());
+                    System.out.println("Filter: " + t.getValue().getName() + " is eligible for this dealerRequet");
+                }
+            } catch (EvaluationException ex) {
+                System.out.println("Evaluation exception for request!");
+                ex.printStackTrace();
             }
         });
         return eligableDealers;
@@ -53,14 +58,18 @@ public class RecipientList {
      * @param time time to payment (use 0 or lower if not applicable)
      * @return true or false
      */
-    private boolean evaluate(String expression, int amount, int time) throws EvaluationException {
-        if (amount > 0) {
-            this.evaluator.putVariable("amount", Integer.toString(amount));
+    private boolean evaluate(String expression, int seats, int period, int price) throws EvaluationException {
+        if (seats > 0) {
+            this.evaluator.putVariable("seats", Integer.toString(seats));
         }
-        if (time > 0) {
-            this.evaluator.putVariable("time", Integer.toString(time));
+        if (period > 0) {
+            this.evaluator.putVariable("period", Integer.toString(period));
+        }
+        if (price > 0) {
+            this.evaluator.putVariable("price", Integer.toString(price));
         }
         boolean output = this.evaluator.getBooleanResult(expression);
+        this.evaluator.clearVariables();
         return output;
     }
 
