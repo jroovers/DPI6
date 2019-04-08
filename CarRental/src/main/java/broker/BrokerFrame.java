@@ -57,8 +57,9 @@ public class BrokerFrame extends JFrame {
                         request.getPeriod(),
                         request.getPrice()
                 );
-                dealerGateway.sendDealerRequest(dealerRequest);
                 add(request, dealerRequest);
+                dealerGateway.sendDealerRequest(dealerRequest);
+
             }
         };
         this.dealerGateway = new BrokerToDealerGateway() {
@@ -66,24 +67,24 @@ public class BrokerFrame extends JFrame {
             public void onDealerReplyArrived(DealerQueryRequest request, DealerQueryReply reply) {
                 if (reply != null) {
                     add(request, reply);
-                    System.out.println("Broker sending LoanReply to client: " + reply.toString());
+                    System.out.println("Broker sending ClientQueryReply to client: " + reply.toString());
                     clientGateway.sendQueryReply(
                             getRequestReply(request).getClientRequest(),
                             new ClientQueryReply(reply.getCars()));
                 } else {
-                    DealerQueryReply noReplies = new DealerQueryReply();
-                    noReplies.setCars(new LinkedList<>());
-                    add(request, noReplies);
+                    DealerQueryReply emptyReply = new DealerQueryReply();
+                    emptyReply.setCars(new LinkedList<>());
+                    add(request, emptyReply);
                     System.out.println("Broker sending (emtpy) reply to client");
                     clientGateway.sendQueryReply(
                             getRequestReply(request).getClientRequest(),
-                            new ClientQueryReply(noReplies.getCars()));
+                            new ClientQueryReply(emptyReply.getCars()));
                 }
             }
 
             @Override
             public void newDealerRegistered(Dealer dealer, String queue, String filter) {
-                notherListModel.addElement(dealer.getName().toString() + ", queue=" + queue + ", filter=" + !filter.isEmpty());
+                notherListModel.addElement(dealer.getName().toString() + ", queue=" + queue + ", filter=" + filter);
             }
         };
 
@@ -137,7 +138,6 @@ public class BrokerFrame extends JFrame {
     }
 
     private JListLine getRequestReply(DealerQueryRequest request) {
-
         for (int i = 0; i < listModel.getSize(); i++) {
             JListLine rr = listModel.get(i);
             if (rr.getDealerRequest() == request) {

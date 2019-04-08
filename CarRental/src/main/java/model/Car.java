@@ -26,6 +26,9 @@ public class Car extends Vehicle {
         StringBuilder string = new StringBuilder();
         string.append("Car{");
         string.append("brand=").append(this.getBrand()).append(",");
+        string.append("seats=").append(this.getSeatCount()).append(",");
+        string.append("color=").append(this.getColor()).append(",");
+        string.append("horsepower=").append(this.getHorsepower());
         string.append("}");
         return string.toString();
     }

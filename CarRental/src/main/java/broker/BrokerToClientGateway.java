@@ -65,7 +65,7 @@ abstract class BrokerToClientGateway {
             sender.Send(replyAddress, replyMessage);
             tempStorage.remove(request);
         } catch (JMSException ex) {
-            System.out.println("Failed to set correlation ID in sendLoanReply");
+            System.out.println("Failed to set correlation ID in sendQueryReply");
         }
     }
 

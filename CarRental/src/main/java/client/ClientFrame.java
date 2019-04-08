@@ -32,6 +32,8 @@ public class ClientFrame extends JFrame {
     private JLabel lblMaxPrice;
     private JLabel lblTime;
     private JTextField tfTime;
+    private JLabel lblBrand;
+    private JTextField tfBrand;
     private DefaultListModel<RequestReply<ClientQueryRequest, ClientQueryReply>> listModel = new DefaultListModel<>();
     private JList<RequestReply<ClientQueryRequest, ClientQueryReply>> requestReplyList;
 
@@ -112,19 +114,34 @@ public class ClientFrame extends JFrame {
         contentPane.add(tfTime, gbc_tfTime);
         tfTime.setColumns(10);
 
-        JButton btnQueue = new JButton("Send Query");
-        btnQueue.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                int seats = Integer.parseInt(tfSeats.getText());
-                int time = Integer.parseInt(tfTime.getText());
-                int maxprice = Integer.parseInt(tfMaxPrice.getText());
-                ClientQueryRequest request = new ClientQueryRequest(seats, "no brand", time, maxprice);
-                listModel.addElement(new RequestReply<>(request, null));
+        lblBrand = new JLabel("(Optional) Brand:");
+        GridBagConstraints gbc_lblNewLabel_2 = new GridBagConstraints();
+        gbc_lblNewLabel_2.anchor = GridBagConstraints.EAST;
+        gbc_lblNewLabel_2.insets = new Insets(0, 0, 5, 5);
+        gbc_lblNewLabel_2.gridx = 0;
+        gbc_lblNewLabel_2.gridy = 3;
+        contentPane.add(lblBrand, gbc_lblNewLabel_2);
 
-                System.out.println("Sending request: " + request.toString());
-                gateway.sendQuery(request);
-            }
+        tfBrand = new JTextField();
+        GridBagConstraints gbc_tfBrand = new GridBagConstraints();
+        gbc_tfBrand.insets = new Insets(0, 0, 5, 5);
+        gbc_tfBrand.fill = GridBagConstraints.HORIZONTAL;
+        gbc_tfBrand.gridx = 1;
+        gbc_tfBrand.gridy = 3;
+        contentPane.add(tfBrand, gbc_tfBrand);
+        tfBrand.setColumns(10);
+
+        JButton btnQueue = new JButton("Send Query");
+        btnQueue.addActionListener((ActionEvent e) -> {
+            int seats = Integer.parseInt(tfSeats.getText());
+            int time = Integer.parseInt(tfTime.getText());
+            int maxprice = Integer.parseInt(tfMaxPrice.getText());
+            String brand = tfBrand.getText();
+            ClientQueryRequest request = new ClientQueryRequest(seats, brand, time, maxprice);
+            listModel.addElement(new RequestReply<>(request, null));
+
+            System.out.println("Sending request: " + request.toString());
+            gateway.sendQuery(request);
         });
         GridBagConstraints gbc_btnQueue = new GridBagConstraints();
         gbc_btnQueue.insets = new Insets(0, 0, 5, 5);
@@ -139,11 +156,17 @@ public class ClientFrame extends JFrame {
         gbc_scrollPane.fill = GridBagConstraints.BOTH;
         gbc_scrollPane.gridx = 0;
         gbc_scrollPane.gridy = 4;
+
         contentPane.add(scrollPane, gbc_scrollPane);
-
-        requestReplyList = new JList<RequestReply<ClientQueryRequest, ClientQueryReply>>(listModel);
+        requestReplyList = new JList<>(listModel);
+        requestReplyList.addListSelectionListener((e) -> {
+            if (requestReplyList.getSelectedValue() != null) {
+                if (requestReplyList.getSelectedValue().getReply() != null) {
+                    System.out.println(requestReplyList.getSelectedValue().getReply().getCars());
+                }
+            }
+        });
         scrollPane.setViewportView(requestReplyList);
-
     }
 
     /**
