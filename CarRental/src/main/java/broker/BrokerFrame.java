@@ -5,6 +5,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.LinkedList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
@@ -24,8 +26,8 @@ public class BrokerFrame extends JFrame {
     private JPanel contentPane;
     private DefaultListModel<JListLine> listModel = new DefaultListModel<>();
     private JList<JListLine> list;
-    private DefaultListModel<String> notherListModel = new DefaultListModel<>();
-    private JList<String> notherList;
+    private DefaultListModel<String> knownDealersList = new DefaultListModel<>();
+    private JList<String> dealerList;
 
     private BrokerToClientGateway clientGateway;
     private BrokerToDealerGateway dealerGateway;
@@ -84,7 +86,13 @@ public class BrokerFrame extends JFrame {
 
             @Override
             public void newDealerRegistered(Dealer dealer, String queue, String filter) {
-                notherListModel.addElement(dealer.getName().toString() + ", queue=" + queue + ", filter=" + filter);
+                knownDealersList.addElement(dealer.getName().toString() + ", queue=" + queue + ", filter=" + filter);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        dealerList.repaint();
+                    }
+                }, 500);
             }
         };
 
@@ -122,8 +130,8 @@ public class BrokerFrame extends JFrame {
         list = new JList<JListLine>(listModel);
         scrollPane.setViewportView(list);
 
-        notherList = new JList<String>(notherListModel);
-        notherPane.setViewportView(notherList);
+        dealerList = new JList<String>(knownDealersList);
+        notherPane.setViewportView(dealerList);
     }
 
     private JListLine getRequestReply(ClientQueryRequest request) {

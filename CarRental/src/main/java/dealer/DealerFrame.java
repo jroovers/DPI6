@@ -96,8 +96,7 @@ public class DealerFrame extends JFrame {
                         gateway.sendDealerReply(request, reply);
                         System.out.println("Cardealer - " + dealerName + "; sending " + reply.getCars().size() + " cars.");
                     }
-                }, 500);
-
+                }, 2500);
             }
         };
         gateway.sendControlMessage(new Dealer(this.dealername), receiverQueue, filter);
